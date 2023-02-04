@@ -44,8 +44,8 @@
 /// imported into the `main` module.
 use std::fmt::Debug;
 
-use ast::{Arena, DstNodeId, SrcNodeId};
-use matchers::{MappingStore, MatchTrees};
+use crate::ast::{Arena, DstNodeId, SrcNodeId};
+use crate::matchers::{MappingStore, MatchTrees};
 
 /// The Null matcher needs no configuration.
 #[derive(Debug, Clone, PartialEq)]

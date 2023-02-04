@@ -39,7 +39,7 @@
 
 use std::cmp::{max, min};
 
-use ast::{Arena, DstNodeId, NodeId, SrcNodeId};
+use crate::ast::{Arena, DstNodeId, NodeId, SrcNodeId};
 
 /// Compute the longest common subsequence of two sequences.
 ///
@@ -145,7 +145,7 @@ pub fn levenshtein<T: Eq + PartialEq + ToString>(s1: &T, s2: &T) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use matchers::{has_same_type_and_label, MappingStore};
+    use crate::matchers::{has_same_type_and_label, MappingStore};
     use std::fmt::Debug;
 
     fn assert_sequence_correct<T: Clone + Debug + Eq + ToString>(store: MappingStore<T>,

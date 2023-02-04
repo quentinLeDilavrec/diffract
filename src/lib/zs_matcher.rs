@@ -42,10 +42,10 @@ use std::f64;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use ast::{Arena, DstNodeId, NodeId, SrcNodeId};
-use f64_eq;
-use matchers::{has_same_type, MappingStore, MappingType, MatchTrees};
-use qgram::trigram_distance;
+use crate::ast::{Arena, DstNodeId, NodeId, SrcNodeId};
+use crate::f64_eq;
+use crate::matchers::{has_same_type, MappingStore, MappingType, MatchTrees};
+use crate::qgram::trigram_distance;
 
 /// Cost of deleting a sub-forest.
 const DELETION_COST: f64 = 1.0;
@@ -350,10 +350,10 @@ impl<U: Copy + Eq + Hash + PartialEq> ZSTree<U> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_common::load_xml_ast;
-    use test_common::{create_mult_arena, create_slide_dst_arena, create_slide_src_arena};
-    use test_common::{create_zs_dst_arena, create_zs_src_arena};
-    use test_common::{create_zs_paper_dst_arena, create_zs_paper_src_arena};
+    use crate::test_common::load_xml_ast;
+    use crate::test_common::{create_mult_arena, create_slide_dst_arena, create_slide_src_arena};
+    use crate::test_common::{create_zs_dst_arena, create_zs_src_arena};
+    use crate::test_common::{create_zs_paper_dst_arena, create_zs_paper_src_arena};
 
     #[test]
     fn test_zs_single_identical_node() {

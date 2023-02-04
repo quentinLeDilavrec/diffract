@@ -65,7 +65,7 @@ fn test_both_arenas_empty() {
 #[should_panic]
 fn test_src_arena_empty() {
     let ast_src = Arena::new();
-    let ast_dst = parse_file("tests/empty.calc", &get_lexer("grammars/calc.l"), &get_parser("grammars/calc.y")).unwrap();
+    let ast_dst = parse_file("tests/empty.calc", &get_parser("grammars/calc.y")).unwrap();
     let mut matcher_config = MyersConfig::new();
     let store = matcher_config.match_trees(ast_src, ast_dst);
     assert!(store.src.borrow().is_empty());
@@ -77,7 +77,7 @@ fn test_src_arena_empty() {
 #[test]
 #[should_panic]
 fn test_dst_arena_empty() {
-    let ast_src = parse_file("tests/empty.calc", &get_lexer("grammars/calc.l"), &get_parser("grammars/calc.y")).unwrap();
+    let ast_src = parse_file("tests/empty.calc", &get_parser("grammars/calc.y")).unwrap();
     let ast_dst = Arena::new();
     let mut matcher_config = MyersConfig::new();
     let store = matcher_config.match_trees(ast_src, ast_dst);

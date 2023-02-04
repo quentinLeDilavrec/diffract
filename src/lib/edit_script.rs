@@ -41,9 +41,9 @@ use std::cmp::max;
 use std::collections::HashSet;
 use std::fmt::Debug;
 
-use action::{ApplyAction, Delete, EditScript, Insert, Move, Update};
-use ast::{ArenaError, DstNodeId, NodeId, SrcNodeId};
-use matchers::{EditScriptResult, MappingStore, MappingType};
+use crate::action::{ApplyAction, Delete, EditScript, Insert, Move, Update};
+use crate::ast::{ArenaError, DstNodeId, NodeId, SrcNodeId};
+use crate::matchers::{EditScriptResult, MappingStore, MappingType};
 
 /// Label to use when introducing temporary root nodes in an AST.
 ///
@@ -457,8 +457,8 @@ impl<T: Clone + Debug + Default + Eq + ToString + 'static> EditScriptGenerator<T
 #[cfg(test)]
 mod tests {
     use super::*;
-    use action::{Delete, Insert, Move, Update};
-    use ast::Arena;
+    use crate::action::{Delete, Insert, Move, Update};
+    use crate::ast::Arena;
 
     #[test]
     fn test_chawathe96_empty_asts() {

@@ -46,8 +46,8 @@ use std::hash::Hash;
 use crypto::digest::Digest;
 use crypto::md5::Md5;
 
-use ast::{Arena, NodeId, SrcOrDstNodeId};
-use matchers::MappingStore;
+use crate::ast::{Arena, NodeId, SrcOrDstNodeId};
+use crate::matchers::MappingStore;
 
 /// Type alias for hashes stored in Arenas.
 pub type HashType = u64;

@@ -40,7 +40,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-use ast::{Arena, DstNodeId, NodeId, SrcNodeId};
+use crate::ast::{Arena, DstNodeId, NodeId, SrcNodeId};
 
 /// A `PriorityNodeId` wraps the height of a node with its id.
 ///
@@ -214,9 +214,9 @@ pub fn match_heights<T: PartialEq + Clone>(src_q: &mut HeightQueue<SrcNodeId>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ast::SrcNodeId;
+    use crate::ast::SrcNodeId;
     use test::Bencher;
-    use test_common::{create_mult_arena, create_plus_arena};
+    use crate::test_common::{create_mult_arena, create_plus_arena};
 
     // Assert that `queue` is in sorted order and has the same size `arena`.
     fn assert_sorted<T: Clone + PartialEq>(queue: &HeightQueue<SrcNodeId>,

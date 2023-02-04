@@ -42,9 +42,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use action::EditScript;
-use ast::{Arena, ArenaError, DstNodeId, NodeId, SrcNodeId};
-use emitters::RenderJson;
+use crate::action::EditScript;
+use crate::ast::{Arena, ArenaError, DstNodeId, NodeId, SrcNodeId};
+use crate::emitters::RenderJson;
 
 /// Result type returned by the edit script generator.
 pub type EditScriptResult<T> = Result<EditScript<T>, ArenaError>;
@@ -272,7 +272,7 @@ pub fn has_same_type<T: Clone + Debug + Eq>(n1: NodeId<SrcNodeId>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_common::{create_mult_arena, create_plus_arena};
+    use crate::test_common::{create_mult_arena, create_plus_arena};
 
     #[test]
     fn is_isomorphic() {
@@ -376,7 +376,7 @@ mod tests {
     }
     #[test]
     fn render_json() {
-        use myers_matcher::MyersConfig;
+        use crate::myers_matcher::MyersConfig;
         let plus = create_plus_arena();
         let mult = create_mult_arena();
         let mut matcher = MyersConfig::new();

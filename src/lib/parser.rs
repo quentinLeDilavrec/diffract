@@ -39,20 +39,27 @@
 
 use std::convert::TryFrom;
 use std::fs::{canonicalize, File};
-use std::io::Read;
+use std::io::{stderr, Read};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
-use cfgrammar::yacc::{YaccGrammar, YaccKind};
-use cfgrammar::TIdx;
-use lrlex::{build_lex, Lexer};
-use lrpar::parser;
+use cfgrammar::yacc::ast::ASTWithValidityInfo;
+use cfgrammar::yacc::{YaccGrammar, YaccKind, YaccOriginalActionKind};
+use cfgrammar::{NewlineCache, Spanned, TIdx};
+use lrlex::{
+    lrlex_mod, CTLexerBuilder, DefaultLexeme, DefaultLexerTypes, LRNonStreamingLexerDef, LexerDef
+};
+use lrpar::{
+    lrpar_mod, parser, LexParseError, Lexeme, Lexer, LexerTypes, NonStreamingLexer,
+    RTParserBuilder, RecoveryKind
+};
 use lrtable::{from_yacc, Minimiser};
 
-use ast::{Arena, NodeId};
+use crate::ast::{Arena, NodeId};
 
 /// Needed for grmtools: must be big enough to index (separately) all nonterminals, productions,
 /// symbols (in productions) and terminals.
-type StorageT = u16;
+type StorageT = u32;
 
 quick_error! {
     /// Errors raised when parsing a source file.
@@ -86,27 +93,40 @@ quick_error! {
     }
 }
 
-/// Given a filename (with extension), return a suitable lex file.
-pub fn get_lexer(path: &str) -> PathBuf {
-    let ext = match Path::new(&path).extension() {
-        Some(ext) => ext.to_str().unwrap(),
-        None => ".txt"
-    };
-    match ext {
-        "java" | "calc" => canonicalize(format!("grammars/{}.l", ext)).unwrap(),
-        _ => canonicalize("grammars/txt.l".to_string()).unwrap()
-    }
+pub enum Parsers {
+    CALC,
+    JAVA,
+    TXT
 }
 
-/// Given a filename (with extension), return a suitable yacc file.
-pub fn get_parser(path: &str) -> PathBuf {
+/// Given a filename (with extension), return a suitable lex file.
+pub fn get_lexer(path: &str) -> Box<dyn LexerDef<DefaultLexerTypes>> {
     let ext = match Path::new(&path).extension() {
         Some(ext) => ext.to_str().unwrap(),
         None => ".txt"
     };
     match ext {
-        "java" | "calc" => canonicalize(format!("grammars/{}.y", ext)).unwrap(),
-        _ => canonicalize("grammars/txt.y".to_string()).unwrap()
+        "calc" => Box::new(calc_l::lexerdef()),
+        "java" => Box::new(calc_l::lexerdef()),
+        "txt" => Box::new(calc_l::lexerdef()),
+        // "java" | "calc" => canonicalize(format!("grammars/{}.l", ext)).unwrap(),
+        // _ => canonicalize("grammars/txt.l".to_string()).unwrap()
+        _ => unimplemented!()
+    }
+}
+/// Given a filename (with extension), return a suitable yacc file.
+pub fn get_parser(path: &str) -> Parsers {
+    let ext = match Path::new(&path).extension() {
+        Some(ext) => ext.to_str().unwrap(),
+        None => ".txt"
+    };
+    match ext {
+        "calc" => Parsers::CALC,
+        "java" => Parsers::JAVA,
+        "txt" => Parsers::TXT,
+        // "java" | "calc" => canonicalize(format!("grammars/{}.y", ext)).unwrap(),
+        // _ => canonicalize("grammars/txt.y".to_string()).unwrap()
+        _ => unimplemented!()
     }
 }
 
@@ -121,57 +141,182 @@ fn read_file(path: &Path) -> Result<String, ParseError> {
     Ok(s)
 }
 
+lrlex_mod!("grammars/calc.l");
+// Using `lrpar_mod!` brings the parser for `calc.y` into scope.
+lrpar_mod!("grammars/calc.y");
+
+// fn read_file(path: &str) -> String {
+//     let mut f = match File::open(path) {
+//         Ok(r) => r,
+//         Err(e) => {
+//             writeln!(stderr(), "Can't open file {}: {}", path, e).ok();
+//             process::exit(1);
+//         }
+//     };
+//     let mut s = String::new();
+//     f.read_to_string(&mut s).unwrap();
+//     s
+// }
 /// Parse a string, and return an `Arena` or `ParseError`.
 pub fn parse_string<T: PartialEq + Copy>(input: &str,
                                          input_path: &str,
-                                         lex_path: &Path,
-                                         yacc_path: &Path)
+                                         parser: &Parsers)
                                          -> Result<Arena<String, T>, ParseError> {
-    // Determine lexer and yacc files by extension. For example if the input
-    // file is named Foo.java, the lexer should be grammars/java.l.
-    // TODO: create a HashMap of file extensions -> lex/yacc files.
-    // Get input files.
-    let lexs = read_file(lex_path)?;
-    let grms = read_file(yacc_path)?;
+    let lex_l_path = Path::join(Path::new(env!("CARGO_MANIFEST_DIR")),
+                                Path::new(match parser {
+                                              Parsers::CALC => "src/grammars/calc.l",
+                                              Parsers::JAVA => "src/grammars/java.l",
+                                              Parsers::TXT => "src/grammars/txt.l",
+                                              _ => panic!()
+                                          }));
+    let recoverykind = RecoveryKind::None;
 
-    let mut lexerdef = build_lex::<StorageT>(&lexs).map_err(|_| ParseError::BrokenLexer)?;
-    let grm = YaccGrammar::<StorageT>::new_with_storaget(YaccKind::Eco, &grms)
-                                      .map_err(|_| ParseError::BrokenParser)?;
-    let (sgraph, stable) = from_yacc(&grm, Minimiser::Pager).map_err(|_| ParseError::BrokenParser)?;
+    let yacckind = YaccKind::Eco; //::Original(YaccOriginalActionKind::GenericParseTree);
 
-    // Sync up the IDs of terminals in the lexer and parser.
-    let rule_ids = grm.tokens_map()
-                      .iter()
-                      .map(|(&n, &i)| (n, StorageT::try_from(usize::from(i)).unwrap()))
-                      .collect();
-    lexerdef.set_rule_ids(&rule_ids);
+    let lex_l_path = lex_l_path.as_path();
+    let lex_src = read_file(lex_l_path).unwrap();
+    use std::io::Write;
+    let spanned_fmt = |spanned: &dyn Spanned, nlcache: &NewlineCache, src, src_path, prefix| {
+        if let Some((line, column)) =
+            nlcache.byte_to_line_num_and_col_num(src, spanned.spans()[0].start())
+        {
+            writeln!(stderr(),
+                     "{:?}: {prefix} {} at line {line} column {column}",
+                     src_path,
+                     &spanned).ok();
+        } else {
+            writeln!(stderr(), "{:?}: {}", &src_path, &spanned).ok();
+        }
+    };
+    let mut lexerdef = match LRNonStreamingLexerDef::<DefaultLexerTypes<u32>>::from_str(&lex_src) {
+        Ok(ast) => ast,
+        Err(errs) => {
+            let nlcache = NewlineCache::from_str(&lex_src).unwrap();
+            for e in errs {
+                spanned_fmt(&e, &nlcache, &lex_src, lex_l_path, "[ERROR]");
+            }
+            panic!()
+        }
+    };
+    let yacc_y_path = Path::join(Path::new(env!("CARGO_MANIFEST_DIR")),
+                                 Path::new(match parser {
+                                               Parsers::CALC => "src/grammars/calc.y",
+                                               Parsers::JAVA => "src/grammars/java.y",
+                                               Parsers::TXT => "src/grammars/txt.y",
+                                               _ => panic!()
+                                           }));
 
-    // Lex input file.
-    let lexer = lexerdef.lexer(input);
-    let lexemes = lexer.lexemes()
-                       .map_err(|_| ParseError::LexicalError(input_path.to_string()))?;
+    let yacc_y_path = yacc_y_path.as_path();
+    let yacc_src = read_file(yacc_y_path).unwrap();
+    let ast_validation = ASTWithValidityInfo::new(yacckind, &yacc_src);
+    let warnings = ast_validation.ast().warnings();
+    let res = YaccGrammar::new_from_ast_with_validity_info(yacckind, &ast_validation);
+    let grm = match res {
+        Ok(x) => {
+            if !warnings.is_empty() {
+                let nlcache = NewlineCache::from_str(&yacc_src).unwrap();
+                for w in warnings {
+                    spanned_fmt(&w, &nlcache, &yacc_src, yacc_y_path, "[WARNING]");
+                }
+            }
+            x
+        }
+        Err(errs) => {
+            let nlcache = NewlineCache::from_str(&yacc_src).unwrap();
+            for e in errs {
+                spanned_fmt(&e, &nlcache, &yacc_src, yacc_y_path, "[ERROR]");
+            }
+            for w in warnings {
+                spanned_fmt(&w, &nlcache, &yacc_src, yacc_y_path, "[WARNING]");
+            }
+            // return Err(ParseError::SyntaxError(input_path.to_string()));
+            panic!()
+        }
+    };
 
-    // Return parse tree.
-    let pt =
-        parser::parse(&grm, &sgraph, &stable, &lexemes).map_err(|_| {
-                                                                            ParseError::SyntaxError(input_path.to_string())
-                                                                        })?;
+    let (sgraph, stable) = match from_yacc(&grm, Minimiser::Pager) {
+        Ok(x) => x,
+        Err(s) => {
+            writeln!(stderr(), "{:?}: {}", &yacc_y_path, &s).ok();
+            panic!();
+        }
+    };
+
+    if let Some(c) = stable.conflicts() {
+        let pp_rr = if let Some(i) = grm.expectrr() {
+            i != c.rr_len()
+        } else {
+            0 != c.rr_len()
+        };
+        let pp_sr = if let Some(i) = grm.expect() {
+            i != c.sr_len()
+        } else {
+            0 != c.sr_len()
+        };
+        if pp_rr {
+            println!("{}", c.pp_rr(&grm));
+        }
+        if pp_sr {
+            println!("{}", c.pp_sr(&grm));
+        }
+        if pp_rr || pp_sr {
+            println!("Stategraph:\n{}\n", sgraph.pp_core_states(&grm));
+        }
+    }
+
+    {
+        let rule_ids = grm.tokens_map().iter().map(|(&n, &i)| (n, i.0)).collect();
+        let (missing_from_lexer, missing_from_parser) = lexerdef.set_rule_ids(&rule_ids);
+        if let Some(tokens) = missing_from_parser {
+            writeln!(stderr(), "Warning: these tokens are defined in the lexer but not referenced in the\ngrammar:").ok();
+            let mut sorted = tokens.iter().cloned().collect::<Vec<&str>>();
+            sorted.sort_unstable();
+            for n in sorted {
+                writeln!(stderr(), "  {}", n).ok();
+            }
+        }
+        if let Some(tokens) = missing_from_lexer {
+            writeln!(
+                                stderr(),
+                                "Error: these tokens are referenced in the grammar but not defined in the lexer:"
+                            )
+                            .ok();
+            let mut sorted = tokens.iter().cloned().collect::<Vec<&str>>();
+            sorted.sort_unstable();
+            for n in sorted {
+                writeln!(stderr(), "  {}", n).ok();
+            }
+            panic!();
+        }
+    }
+    let lexer = lexerdef.lexer(&input);
+    let pb = RTParserBuilder::new(&grm, &stable).recoverer(recoverykind);
+    let (pt, errs) = pb.parse_generictree(&lexer);
+    if !errs.is_empty() {
+        for err in errs {
+            println!("{}", &err);
+            return match err {
+                LexParseError::LexError(_) => Err(ParseError::LexicalError(input_path.to_string())),
+                LexParseError::ParseError(_) => Err(ParseError::SyntaxError(input_path.to_string()))
+            };
+        }
+    }
+    let pt = pt.ok_or_else(|| ParseError::SyntaxError(input_path.to_string()))?;
     Ok(parse_into_ast::<T>(&pt, &lexer, &grm, input))
 }
 
 /// Parse an individual input file, and return an `Arena` or `ParseError`.
 pub fn parse_file<T: PartialEq + Copy>(input_path: &str,
-                                       lex_path: &Path,
-                                       yacc_path: &Path)
+                                       parser: &Parsers)
                                        -> Result<Arena<String, T>, ParseError> {
     let input = read_file(Path::new(input_path))?;
-    parse_string(&input, &input_path, lex_path, yacc_path)
+    parse_string(&input, &input_path, parser)
 }
 
 // Turn a grammar, parser and input string into an AST arena.
-fn parse_into_ast<T: PartialEq + Copy>(pt: &parser::Node<StorageT>,
-                                       lexer: &Lexer<StorageT>,
-                                       grm: &YaccGrammar<StorageT>,
+fn parse_into_ast<T: PartialEq + Copy>(pt: &parser::Node<DefaultLexeme, StorageT>,
+                                       lexer: &dyn NonStreamingLexer<DefaultLexerTypes>,
+                                       grm: &YaccGrammar,
                                        input: &str)
                                        -> Arena<String, T> {
     let mut arena = Arena::new();
@@ -186,14 +331,15 @@ fn parse_into_ast<T: PartialEq + Copy>(pt: &parser::Node<StorageT>,
             parser::Node::Term { lexeme } => {
                 let token_id = lexeme.tok_id();
                 let term_name = grm.token_name(TIdx(token_id)).unwrap();
-                let lexeme_string = &input[lexeme.start()..lexeme.start() + lexeme.len()];
-                let (line_no, col_no) = lexer.line_and_col(&lexeme).unwrap();
+                let span = lexeme.span();
+                let lexeme_string = &input[span.start()..span.start() + span.len()];
+                let (line_no, col_no) = lexer.line_col(span).0;
                 child_node = arena.new_node(term_name.to_string(),
                                             lexeme_string.to_string(),
                                             Some(col_no),
                                             Some(line_no),
-                                            Some(lexeme.start()),
-                                            Some(lexeme.len()));
+                                            Some(span.start()),
+                                            Some(span.len()));
                 match parent.pop().unwrap() {
                     None => parent.push(None),
                     Some(id) => {
@@ -201,10 +347,9 @@ fn parse_into_ast<T: PartialEq + Copy>(pt: &parser::Node<StorageT>,
                     }
                 };
             }
-            parser::Node::Nonterm { ridx,
-                                    ref nodes } => {
+            parser::Node::Nonterm { ridx, ref nodes } => {
                 // A non-terminal has no label of its own, but has a node type.
-                child_node = arena.new_node(grm.rule_name(ridx).to_string(),
+                child_node = arena.new_node(grm.rule_name_str(ridx).to_string(),
                                             "".to_string(),
                                             None,
                                             None,

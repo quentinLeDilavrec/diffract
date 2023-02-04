@@ -234,7 +234,7 @@ pub mod test_common {
     use serde::{Deserialize, Deserializer};
     use serde_xml_rs::deserialize;
 
-    use ast::{Arena, DstNodeId, NodeId, SrcNodeId};
+    use crate::ast::{Arena, DstNodeId, NodeId, SrcNodeId};
 
     fn to_string<'de, D>(deserializer: D) -> Result<String, D::Error>
         where D: Deserializer<'de>

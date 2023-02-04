@@ -37,8 +37,8 @@
 
 #![warn(missing_docs)]
 
-use ast::{Arena, NodeId};
-use label_maps::LabelMap;
+use crate::ast::{Arena, NodeId};
+use crate::label_maps::LabelMap;
 /// Stores information about a single AST (as needed by RTED) in vectors.
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
@@ -546,8 +546,8 @@ impl<'a> InfoTree<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use label_maps::LabelMap;
-    use test_common::create_mult_arena;
+    use crate::label_maps::LabelMap;
+    use crate::test_common::create_mult_arena;
 
     #[test]
     fn test_new_info_trees() {

@@ -2,4 +2,4 @@
 \+ "PLUS"
 \* "MULT"
 [0-9]+ "INT"
-[ \t\n\r]+ "WHITESPACE"
+[\t\n\r ]+ "WHITESPACE"

@@ -43,10 +43,10 @@
 /// This matcher would use the additional operation which are GLUE and COPY.
 /// In addition to Insert, Delete, Move, Update.
 /// This is supposed to be an alternative matcher to chawathe96.
-use action::{ApplyAction, Copy, Delete, EditScript, Glue, Insert, Move, Update};
-use ast::{Arena, DstNodeId, NodeId, SrcNodeId};
-use emitters::RenderJson;
-use matchers::{has_same_type, has_same_type_and_label, EditScriptResult};
+use crate::action::{ApplyAction, Copy, Delete, EditScript, Glue, Insert, Move, Update};
+use crate::ast::{Arena, DstNodeId, NodeId, SrcNodeId};
+use crate::emitters::RenderJson;
+use crate::matchers::{has_same_type, has_same_type_and_label, EditScriptResult};
 
 use std::cell::RefCell;
 use std::cmp;

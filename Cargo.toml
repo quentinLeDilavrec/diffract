@@ -1,3 +1,4 @@
+[workspace]
 [package]
 name = "diffract"
 version = "0.1.0"
@@ -8,6 +9,7 @@ homepage = "https://github.com/softdevteam/diffract.git"
 license = "UPL"
 description = "Generate source code diffs based on ASTs."
 build = "build.rs"
+edition = "2018"
 
 [[bin]]
 doc = false
@@ -19,6 +21,8 @@ path = "src/lib/mod.rs"
 
 [build-dependencies]
 glob = "0.2"
+cfgrammar = "0.13.0"
+lrlex = "0.13.0"
 
 [dev-dependencies]
 serde-xml-rs = "0.2"
@@ -34,7 +38,7 @@ rust-crypto = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 term = "0.5"
-cfgrammar = { git = "https://github.com/softdevteam/grmtools" }
-lrlex = { git = "http://github.com/softdevteam/grmtools" }
-lrpar = { git = "http://github.com/softdevteam/grmtools" }
-lrtable = { git = "http://github.com/softdevteam/grmtools" }
+cfgrammar = "0.13.0"
+lrlex = "0.13.0"
+lrpar = "0.13.1"
+lrtable = "0.13.0"

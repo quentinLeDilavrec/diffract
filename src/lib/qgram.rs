@@ -178,7 +178,7 @@ pub fn trigram_distance(s1: &str, s2: &str) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use f64_eq;
+    use crate::f64_eq;
 
     #[test]
     fn test_qgram_padding() {

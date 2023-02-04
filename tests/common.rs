@@ -47,13 +47,13 @@ use diffract::parser::{get_lexer, get_parser, parse_file};
 
 /// Check that the Chawathe 1996 edit script generator correctly generates an
 /// edit script for two files and a given matcher.
-pub fn check_files(path1: &str, path2: &str, mut matcher: Box<MatchTrees<String>>) {
-    let ast_src = parse_file(path1, &get_lexer(path1), &get_parser(path1)).unwrap();
-    let ast_dst = parse_file(path2, &get_lexer(path2), &get_parser(path2)).unwrap();
+pub fn check_files(path1: &str, path2: &str, mut matcher: Box<dyn MatchTrees<String>>) {
+    let ast_src = parse_file(path1, &get_parser(path1)).unwrap();
+    let ast_dst = parse_file(path2, &get_parser(path2)).unwrap();
     // Generate mappings between ASTs.
     let store = matcher.match_trees(ast_src.clone(), ast_dst.clone());
     // Generate an edit script.
-    let gen_config: Box<EditScriptGenerator<String>> = Box::new(Chawathe96Config::new());
+    let gen_config: Box<dyn EditScriptGenerator<String>> = Box::new(Chawathe96Config::new());
     let edit_script_wrapped = gen_config.generate_script(&store);
     assert!(edit_script_wrapped.is_ok(),
             "Edit script generator failed to complete.");

@@ -42,8 +42,8 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 
-use fingerprint::{HashType, CLOSE_SYMBOL, OPEN_SYMBOL, SEPARATE_SYMBOL};
-use hqueue::HeightQueue;
+use crate::fingerprint::{HashType, CLOSE_SYMBOL, OPEN_SYMBOL, SEPARATE_SYMBOL};
+use crate::hqueue::HeightQueue;
 
 quick_error! {
     /// Errors raised by arenas.
@@ -931,7 +931,7 @@ impl<'a, T: Clone, U: PartialEq + Copy> Iterator for PreOrderTraversal<'a, T, U>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_common::{create_mult_arena, create_plus_arena, load_xml_ast};
+    use crate::test_common::{create_mult_arena, create_plus_arena, load_xml_ast};
 
     #[test]
     fn from_trait_node_ids() {

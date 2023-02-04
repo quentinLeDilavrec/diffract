@@ -42,11 +42,11 @@ use std::boxed::Box;
 use std::clone::Clone;
 use std::fmt;
 
-use ast::{Arena, ArenaError, ArenaResult, NodeId, SrcNodeId};
-use chawathe98_matcher::MappingStoreGraph;
-use emitters::RenderJson;
-use matchers::MappingStore;
-use patch::Patch;
+use crate::ast::{Arena, ArenaError, ArenaResult, NodeId, SrcNodeId};
+use crate::chawathe98_matcher::MappingStoreGraph;
+use crate::emitters::RenderJson;
+use crate::matchers::MappingStore;
+use crate::patch::Patch;
 
 /// Type of action.
 ///
@@ -645,7 +645,7 @@ impl<T: Clone + fmt::Debug + Eq + PartialEq + ToString + 'static> ApplyAction<T>
 #[cfg(test)]
 mod test {
     use super::*;
-    use test_common::create_mult_arena;
+    use crate::test_common::create_mult_arena;
 
     #[test]
     fn apply_delete_leaf() {

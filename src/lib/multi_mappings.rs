@@ -41,7 +41,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
-use ast::{DstNodeId, NodeId, SrcNodeId};
+use crate::ast::{DstNodeId, NodeId, SrcNodeId};
 
 /// A store of mappings between nodes in different arenas.
 /// Direction is important.

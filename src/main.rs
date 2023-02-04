@@ -47,10 +47,10 @@ use std::io::{stderr, stdout, Write};
 use std::path::{Path, PathBuf};
 use std::{env, process};
 
+use diffract::parser::Parsers;
 use docopt::Docopt;
 
 extern crate diffract;
-use diffract::ast;
 use diffract::chawathe98_matcher;
 use diffract::edit_script;
 use diffract::emitters;
@@ -58,8 +58,8 @@ use diffract::fingerprint;
 use diffract::gt_matcher;
 use diffract::matchers::MatchTrees;
 use diffract::myers_matcher;
-use diffract::parser;
 use diffract::zs_matcher;
+use diffract::{ast, parser};
 
 const USAGE: &str = "
 Usage: diffract [options] <src-file> <dst-file>
@@ -160,9 +160,8 @@ fn exit_with_message(message: &str) -> ! {
 
 fn write_dotfile_to_disk<T: diffract::emitters::RenderDotfile>(filepath: &str, object: &T) {
     emitters::write_dotfile_to_disk(filepath, object).map_err(|ref err| {
-                                                                  exit_with_message(&format!("{}",
-                                                                                             err))
-                                                              })
+                                                         exit_with_message(&format!("{}", err))
+                                                     })
                                                      .unwrap();
 }
 
@@ -171,8 +170,8 @@ fn write_dotfile_to_disk<T: diffract::emitters::RenderDotfile>(filepath: &str, o
 fn process_matcher_configs(args: &Args,
                            ast_src: &ast::Arena<String, ast::SrcNodeId>,
                            ast_dst: &ast::Arena<String, ast::DstNodeId>)
-                           -> Box<MatchTrees<String>> {
-    let config: Box<MatchTrees<String>>;
+                           -> Box<dyn MatchTrees<String>> {
+    let config: Box<dyn MatchTrees<String>>;
     if args.flag_matcher != None && args.flag_matcher != Some(Matchers::GumTree) {
         if args.flag_max_size.is_some() {
             exit_with_message("--max-size only makes sense with the GumTree matcher.");
@@ -217,10 +216,10 @@ fn process_matcher_configs(args: &Args,
 
 fn get_matcher_descriptions() -> String {
     let mut descriptions = vec![];
-    let myers: Box<MatchTrees<u16>> = Box::new(myers_matcher::MyersConfig::new());
-    let gt: Box<MatchTrees<u16>> = Box::new(gt_matcher::GumTreeConfig::new());
+    let myers: Box<dyn MatchTrees<u16>> = Box::new(myers_matcher::MyersConfig::new());
+    let gt: Box<dyn MatchTrees<u16>> = Box::new(gt_matcher::GumTreeConfig::new());
     let dummy_src: ast::Arena<String, ast::SrcNodeId> = ast::Arena::new();
-    let zs: Box<MatchTrees<u16>> =
+    let zs: Box<dyn MatchTrees<u16>> =
         Box::new(zs_matcher::ZhangShashaConfig::new(&dummy_src, &ast::Arena::new()));
     descriptions.push(format!("{}\n-----{}\n", "Myers:", myers.describe()));
     descriptions.push(format!("{}\n-------{}\n", "GumTree", gt.describe()));
@@ -228,14 +227,10 @@ fn get_matcher_descriptions() -> String {
     descriptions.join("\n")
 }
 
-fn parse_file<T: Copy + PartialEq>(filename: &str,
-                                   lexer_path: &PathBuf,
-                                   yacc_path: &PathBuf)
-                                   -> ast::Arena<String, T> {
-    parser::parse_file::<T>(filename, lexer_path, yacc_path).map_err(|ref err| {
-                                                                         exit_with_message(&format!("{}", err))
-                                                                     })
-                                                            .unwrap()
+fn parse_file<T: Copy + PartialEq>(filename: &str, parser: &Parsers) -> ast::Arena<String, T> {
+    let op = |ref err| exit_with_message(&format!("{}", err));
+    parser::parse_file::<T>(filename, parser).map_err(op)
+                                             .unwrap()
 }
 
 /// Process flags which merely request documentation.
@@ -259,7 +254,7 @@ fn process_doc_flags(args: &Args) {
 /// `grammars/java.l`. This function duplicates some checks that are performed
 /// by the `treedst::ast::parse_file` in order to give better error messages.
 /// Will cause diffract to exit if user-requested lexer / parser does not exist.
-fn get_parsers(args: &Args) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
+fn get_parsers(args: &Args) -> (Parsers, Parsers) {
     // TODO: create a HashMap of file extensions -> lex/yacc files.
     match env::current_exe() {
         Ok(p) => p,
@@ -272,24 +267,18 @@ fn get_parsers(args: &Args) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
     };
     // Lexer path for first input file.
     let lexer1 = if !args.flag_grammar.is_empty() {
-        canonicalize(format!("{}.l", &args.flag_grammar[0])).unwrap()
+        // canonicalize(format!("{}.l", &args.flag_grammar[0])).unwrap()
+        unimplemented!()
     } else {
         parser::get_lexer(&args.arg_src_file)
     };
     // Parser path for first input file.
     let parser1 = if !args.flag_grammar.is_empty() {
-        canonicalize(format!("{}.y", &args.flag_grammar[0])).unwrap()
+        // canonicalize(format!("{}.y", &args.flag_grammar[0])).unwrap()
+        unimplemented!()
     } else {
         parser::get_parser(&args.arg_src_file)
     };
-    if !args.flag_grammar.is_empty() {
-        if !Path::new(&lexer1).exists() {
-            exit_with_message(&format!("Requested lexer {:?} does not exist.", lexer1));
-        }
-        if !Path::new(&parser1).exists() {
-            exit_with_message(&format!("Requested parser {:?} does not exist.", parser1));
-        }
-    }
 
     match Path::new(&args.arg_dst_file).extension() {
         Some(_) => (),
@@ -297,25 +286,19 @@ fn get_parsers(args: &Args) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
     };
     // Lexer path for second input file.
     let lexer2 = if !args.flag_grammar.is_empty() && args.flag_grammar.len() > 1 {
-        canonicalize(format!("{}.l", &args.flag_grammar[1])).unwrap()
+        // canonicalize(format!("{}.l", &args.flag_grammar[1])).unwrap()
+        unimplemented!()
     } else {
         parser::get_lexer(&args.arg_dst_file)
     };
     // Parser path for second input file.
     let parser2 = if !args.flag_grammar.is_empty() && args.flag_grammar.len() > 1 {
-        canonicalize(format!("{}.y", &args.flag_grammar[1])).unwrap()
+        // canonicalize(format!("{}.y", &args.flag_grammar[1])).unwrap()
+        unimplemented!()
     } else {
         parser::get_parser(&args.arg_dst_file)
     };
-    if !args.flag_grammar.is_empty() && args.flag_grammar.len() > 1 {
-        if !Path::new(&lexer2).exists() {
-            exit_with_message(&format!("Requested lexer {:?} does not exist.", lexer2));
-        }
-        if !Path::new(&parser2).exists() {
-            exit_with_message(&format!("Requested parser {:?} does not exist.", parser2));
-        }
-    }
-    (lexer1, parser1, lexer2, parser2)
+    (parser1, parser2)
 }
 
 fn main() {
@@ -331,14 +314,14 @@ fn main() {
     }
     env_logger::init();
 
-    let (lexer1, parser1, lexer2, parser2) = get_parsers(&args);
+    let (parser1, parser2) = get_parsers(&args);
 
     // Parse both input files.
-    let ast_src = parse_file::<ast::SrcNodeId>(&args.arg_src_file, &lexer1, &parser1);
-    let ast_dst = parse_file::<ast::DstNodeId>(&args.arg_dst_file, &lexer2, &parser2);
+    let ast_src = parse_file::<ast::SrcNodeId>(&args.arg_src_file, &parser1);
+    let ast_dst = parse_file::<ast::DstNodeId>(&args.arg_dst_file, &parser2);
 
     // Matcher configuration object.
-    let mut matcher_config: Box<MatchTrees<String>> =
+    let mut matcher_config: Box<dyn MatchTrees<String>> =
         process_matcher_configs(&args, &ast_src, &ast_dst);
 
     // Dump ASTs to STDOUT, if requested.
@@ -428,15 +411,15 @@ fn main() {
 
     // Edit script generator configuration object.
 
-    let generator_config: Box<edit_script::EditScriptGenerator<String>> =
+    let generator_config: Box<dyn edit_script::EditScriptGenerator<String>> =
         generator_script_config(args.flag_edit);
 
     // There are only 2 enum
     // 1) Chawathe96Config
     // 2) Chawathe98Config
     fn generator_script_config(input: Option<EditScriptGenerator>)
-                               -> Box<edit_script::EditScriptGenerator<String>> {
-        let config: Box<edit_script::EditScriptGenerator<String>>;
+                               -> Box<dyn edit_script::EditScriptGenerator<String>> {
+        let config: Box<dyn edit_script::EditScriptGenerator<String>>;
         match input {
             Some(EditScriptGenerator::Chawathe96) | None => {
                 config = Box::new(edit_script::Chawathe96Config::new());
@@ -465,7 +448,10 @@ fn main() {
         emitters::write_diff_to_stdout(&store,
                                        &edit_script,
                                        &args.arg_src_file,
-                                       &args.arg_dst_file).map_err(|ref err| { exit_with_message(&format!("{}", err)) }).unwrap();
+                                       &args.arg_dst_file).map_err(|ref err| {
+                                                              exit_with_message(&format!("{}", err))
+                                                          })
+                                                          .unwrap();
     } else if args.flag_output == Some(Output::None) {
         info!("No output requested by the user.");
         return;

@@ -42,9 +42,9 @@ use std::fmt::Debug;
 use std::cmp::min;
 use std::collections::HashSet;
 
-use ast::{Arena, DstNodeId, NodeId, SrcNodeId};
-use hqueue::HeightQueue;
-use matchers::{MappingStore, MappingType, MatchTrees};
+use crate::ast::{Arena, DstNodeId, NodeId, SrcNodeId};
+use crate::hqueue::HeightQueue;
+use crate::matchers::{MappingStore, MappingType, MatchTrees};
 
 #[derive(Debug, Clone, PartialEq)]
 /// Variables required by the matcher algorithm, set by the user.
@@ -124,12 +124,12 @@ fn get_gt_anchor_mappings<T: Clone + Debug + Eq + ToString + 'static>(store: &Ma
         if src_q.peek_max().unwrap() != dst_q.peek_max().unwrap() {
             if src_q.peek_max().unwrap() > dst_q.peek_max().unwrap() {
                 for id in src_q.pop() {
-                    src_q.open(id, &store.src_arena.borrow());
+                    src_q.push_children(id, &store.src_arena.borrow());
                 }
             } else {
                 // FIXME this can't be correct.
                 for id in src_q.pop() {
-                    src_q.open(id, &store.src_arena.borrow());
+                    src_q.push_children(id, &store.src_arena.borrow());
                 }
             }
         } else {

@@ -39,9 +39,9 @@
 
 use std::fmt::Debug;
 
-use ast::{Arena, DstNodeId, NodeId, SrcNodeId};
-use matchers::{has_same_type_and_label, MappingStore, MappingType, MatchTrees};
-use sequence::lcss;
+use crate::ast::{Arena, DstNodeId, NodeId, SrcNodeId};
+use crate::matchers::{has_same_type_and_label, MappingStore, MappingType, MatchTrees};
+use crate::sequence::lcss;
 
 #[derive(Debug, Clone, PartialEq)]
 /// The Myers matcher does not require any configuration.

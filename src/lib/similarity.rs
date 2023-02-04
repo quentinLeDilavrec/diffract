@@ -41,8 +41,8 @@
 use std::collections::HashSet;
 use std::fmt::Debug;
 
-use ast::{DstNodeId, NodeId, SrcNodeId};
-use matchers::MappingStore;
+use crate::ast::{DstNodeId, NodeId, SrcNodeId};
+use crate::matchers::MappingStore;
 
 impl<T: Clone + Debug + Eq + ToString + 'static> MappingStore<T> {
     /// Dice measure of similarity between subtrees.
@@ -103,8 +103,8 @@ impl<T: Clone + Debug + Eq + ToString + 'static> MappingStore<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ast::Arena;
-    use test_common::{create_mult_arena, create_plus_arena};
+    use crate::ast::Arena;
+    use crate::test_common::{create_mult_arena, create_plus_arena};
 
     #[test]
     fn num_common_descendants() {

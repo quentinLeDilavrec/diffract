@@ -46,11 +46,11 @@ use std::io::{Error, Read, Write};
 use dot::{escape_html, render, Edges, GraphWalk, Id, LabelText, Labeller, Nodes};
 use term;
 
-use action::{ActionType, EditScript, Patchify};
-use ast::{Arena, DstNodeId, EdgeId, NodeId, SrcNodeId};
-use chawathe98_matcher::{EdgeType, MappingStoreGraph};
-use matchers::{MappingStore, MappingType};
-use patch::{hunkify, Patch};
+use crate::action::{ActionType, EditScript, Patchify};
+use crate::ast::{Arena, DstNodeId, EdgeId, NodeId, SrcNodeId};
+use crate::chawathe98_matcher::{EdgeType, MappingStoreGraph};
+use crate::matchers::{MappingStore, MappingType};
+use crate::patch::{hunkify, Patch};
 
 quick_error! {
     /// Errors produced in emitting new data.

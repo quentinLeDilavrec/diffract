@@ -40,7 +40,7 @@
 use std::clone::Clone;
 use std::collections::BTreeMap;
 
-use action::ActionType;
+use crate::action::ActionType;
 
 // How close do two diffs have to be (in characters) to be merged into one patch?
 // We assume lines are 80 characters long.

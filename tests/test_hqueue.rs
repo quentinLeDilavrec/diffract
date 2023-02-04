@@ -72,7 +72,7 @@ fn assert_sorted<T: Clone + PartialEq>(queue: &HeightQueue<SrcNodeId>,
 }
 
 fn assert_sorted_from_file(filepath: &str) {
-    let arena = parse_file(filepath, &get_lexer(filepath), &get_parser(filepath)).unwrap();
+    let arena = parse_file(filepath, &get_parser(filepath)).unwrap();
     let queue = arena.get_priority_queue();
     assert_sorted(&queue, &arena);
 }

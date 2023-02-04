@@ -41,10 +41,10 @@
 /// This matcher implements Pawlik and Augsten (2011).
 use std::fmt::Debug;
 
-use ast::{Arena, DstNodeId, SrcNodeId};
-use info_tree::{InfoIdx, InfoTree};
-use label_maps::LabelMap;
-use matchers::{MappingStore, MatchTrees};
+use crate::ast::{Arena, DstNodeId, SrcNodeId};
+use crate::info_tree::{InfoIdx, InfoTree};
+use crate::label_maps::LabelMap;
+use crate::matchers::{MappingStore, MatchTrees};
 use std::cmp::max;
 use std::rc::Rc;
 
@@ -228,7 +228,7 @@ is efficient and worst-case optimal. For more information see Pawlik and Augsten
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_common::{create_mult_arena, create_plus_arena};
+    use crate::test_common::{create_mult_arena, create_plus_arena};
 
     #[test]
     fn test_new_rted_config() {
